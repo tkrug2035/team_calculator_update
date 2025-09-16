@@ -1,763 +1,951 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Estimate Sheet - Pressure Washing Calculator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
-    <style>
-        @import url('https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css');
-        .line-through { text-decoration: line-through; }
-    </style>
-</head>
-<body class="bg-gray-100">
-    <div id="app"></div>
+import React, { useState } from 'react';
+import { Calculator, Home, Star, Crown, Zap } from 'lucide-react';
 
-    <script>
-        // State management
-        let state = {
-            targetHourlyRate: 160,
-            propertyType: 'residential',
-            basicCleanDiscount: 0,
-            services: [
-                {
-                    id: 1,
-                    type: 'house',
-                    name: 'House Washing',
-                    size: '2k-3k',
-                    complexity: 'standard',
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        '0-2k': { time: 2.481 },
-                        '2k-3k': { time: 2.813 },
-                        '3k-4k': { time: 3.750 },
-                        '4k-5k': { time: 4.688 },
-                        '5k-6k': { time: 5.625 }
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 2,
-                    type: 'driveway',
-                    name: 'Driveway Cleaning - Concrete',
-                    size: '0-500',
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        '0-500': { time: 0.625 },
-                        '500-1000': { time: 1.25 },
-                        '1000-1500': { time: 1.875 },
-                        '1500-2000': { time: 2.5 },
-                        '2000-2500': { time: 3.0 },
-                        '2500-3000': { time: 3.5 },
-                        '3000-3500': { time: 4.0 },
-                        '3500-4000': { time: 4.5 }
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 3,
-                    type: 'pool_deck',
-                    name: 'Pool Deck Cleaning',
-                    size: '0-2000',
-                    enclosureType: 'open',
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        '0-2000': { time: 1.406 },
-                        '2000-4000': { time: 2.813 }
-                    },
-                    enclosureMultipliers: {
-                        'open': 1.0,
-                        'screened': 1.25
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 4,
-                    type: 'pavers',
-                    name: 'Paver Cleaning Patio/Driveway',
-                    size: '0-500',
-                    complexity: 'standard',
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        '0-500': { time: 1.856 },
-                        '500-1000': { time: 1.856 },
-                        '1000-1500': { time: 2.900 },
-                        '1500-2000': { time: 3.625 },
-                        '2000-2500': { time: 4.350 },
-                        '2500-3000': { time: 5.075 },
-                        '3000-3500': { time: 5.800 },
-                        '3500-4000': { time: 6.525 }
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 5,
-                    type: 'screen_enclosure',
-                    name: 'Pool Screen Enclosure',
-                    size: '0-2000',
-                    complexity: 'standard',
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        '0-2000': { time: 2.813 },
-                        '2000-4000': { time: 6.0 }
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 6,
-                    type: 'gutter_interior',
-                    name: 'Gutter Interior Cleaning',
-                    size: { feet: 150, story: '1story' },
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        '1story': { timePerFt: 0.0125 },
-                        '2story': { timePerFt: 0.025 }
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 7,
-                    type: 'gutter_exterior',
-                    name: 'Gutter Exterior Brightening',
-                    size: { feet: 150, story: '1story' },
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        '1story': { timePerFt: 0.0125 },
-                        '2story': { timePerFt: 0.025 }
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 8,
-                    type: 'roof',
-                    name: 'Roof Cleaning',
-                    size: '0-1k',
-                    roofType: 'asphalt',
-                    gutterStatus: 'has_gutters',
-                    storyLevel: '1story',
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        '0-1k': { time: 2.363 },
-                        '1k-2k': { time: 4.725 },
-                        '2k-3k': { time: 5.906 },
-                        '3k-4k': { time: 8.269 },
-                        '4k-5k': { time: 10.631 },
-                        '5k-6k': { time: 13.000 },
-                        '6k-7k': { time: 15.356 }
-                    },
-                    roofMultipliers: {
-                        'asphalt': 1.0,
-                        'metal': 1.25,
-                        'metal_granular': 1.25,
-                        'tpo': 1.25,
-                        'other': 1.25
-                    },
-                    gutterMultipliers: {
-                        'has_gutters': 1.0,
-                        'no_gutters': 1.5
-                    },
-                    storyMultipliers: {
-                        '1story': 1.0,
-                        '2story': 1.55,
-                        '3story': 2.25
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 13,
-                    type: 'wooden_fence',
-                    name: 'Wooden Fence Cleaning',
-                    size: { feet: 100 },
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        'per_foot': { timePerFt: 0.0141 }
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 14,
-                    type: 'deck',
-                    name: 'Deck Cleaning',
-                    size: '0-500',
-                    deckType: 'wood',
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        '0-500': { time: 1.25 },
-                        '500-1000': { time: 2.188 },
-                        '1000-1500': { time: 3.125 },
-                        '1500-2000': { time: 4.063 },
-                        '2000-2500': { time: 5.0 },
-                        '2500-3000': { time: 5.938 },
-                        '3000-3500': { time: 6.875 },
-                        '3500-4000': { time: 7.813 },
-                        '4000-4500': { time: 8.75 },
-                        '4500-5000': { time: 9.688 }
-                    },
-                    deckMultipliers: {
-                        'wood': 1.0,
-                        'trex': 0.85
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 9,
-                    type: 'move_return',
-                    name: 'Move & Return Items',
-                    size: '0-25',
-                    complexity: 'standard',
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        '0-25': { time: 0.469 },
-                        '25-50': { time: 0.781 },
-                        '50-75': { time: 1.094 },
-                        '75-100': { time: 1.406 }
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 10,
-                    type: 'outdoor_furniture',
-                    name: 'Outdoor Furniture Cleaning',
-                    size: 10,
-                    serviceMultiplier: 1.0,
-                    baseRate: { timePerPiece: 0.03125 },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 11,
-                    type: 'spot_free_windows',
-                    name: 'Spot Free Window Cleaning',
-                    size: 12,
-                    serviceMultiplier: 1.0,
-                    baseRate: { timePerWindow: 0.05 },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                },
-                {
-                    id: 12,
-                    type: 'protective_wax',
-                    name: 'Protective Wax (Mildew Retardant)',
-                    size: '0-2k',
-                    serviceMultiplier: 1.0,
-                    baseRates: {
-                        '0-2k': { time: 1.0 },
-                        '2k-3k': { time: 1.063 },
-                        '3k-4k': { time: 1.125 },
-                        '4k-5k': { time: 1.188 },
-                        '5k-6k': { time: 1.25 }
-                    },
-                    packages: { A: false, B: false, C: false, D: false },
-                    enabled: false
-                }
-            ]
+export default function PressureWashingCalculator() {
+  const [targetHourlyRate, setTargetHourlyRate] = useState(160);
+  const [propertyType, setPropertyType] = useState('residential');
+  const [packageADiscount, setPackageADiscount] = useState(0);
+
+  const [services, setServices] = useState([
+    {
+      id: 1,
+      type: 'house',
+      name: 'House Washing',
+      size: '2k-3k',
+      complexity: 'standard',
+      baseRates: {
+        '0-2k': { price: 397, time: 2.0 },
+        '2k-3k': { price: 450, time: 2.8 },
+        '3k-4k': { price: 600, time: 3.5 },
+        '4k-5k': { price: 750, time: 4.2 },
+        '5k-6k': { price: 900, time: 5.0 }
+      },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    },
+    {
+      id: 2,
+      type: 'driveway',
+      name: 'Driveway Cleaning - Concrete',
+      size: '0-500',
+      complexity: 'standard',
+      baseRates: {
+        '0-500': { price: 100, time: 0.6 },
+        '500-1000': { price: 200, time: 1.2 },
+        '1000-1500': { price: 300, time: 1.8 },
+        '1500-2000': { price: 400, time: 2.5 },
+        '2000-2500': { price: 480, time: 3.0 },
+        '2500-3000': { price: 560, time: 3.5 },
+        '3000-3500': { price: 640, time: 4.0 },
+        '3500-4000': { price: 720, time: 4.5 }
+      },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    },
+    {
+      id: 3,
+      type: 'pool_deck',
+      name: 'Pool Deck Cleaning',
+      size: '0-2000',
+      enclosureType: 'open',
+      complexity: 'standard',
+      baseRates: {
+        '0-2000': { price: 225, time: 1.5 },
+        '2000-4000': { price: 450, time: 3.0 }
+      },
+      enclosureMultipliers: {
+        'open': 1.0,
+        'screened': 1.25
+      },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    },
+    {
+      id: 4,
+      type: 'pavers',
+      name: 'Paver Cleaning Patio/Driveway',
+      size: '0-500',
+      complexity: 'standard',
+      baseRates: {
+        '0-500': { price: 297, time: 1.25 },
+        '500-1000': { price: 297, time: 1.875 },
+        '1000-1500': { price: 464, time: 2.5 },
+        '1500-2000': { price: 580, time: 3.125 },
+        '2000-2500': { price: 696, time: 3.75 },
+        '2500-3000': { price: 812, time: 4.375 },
+        '3000-3500': { price: 928, time: 5.0 },
+        '3500-4000': { price: 1044, time: 5.625 }
+      },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    },
+    {
+      id: 5,
+      type: 'screen_enclosure',
+      name: 'Pool Screen Enclosure',
+      size: '0-2000',
+      complexity: 'standard',
+      baseRates: {
+        '0-2000': { price: 450, time: 3.0 },
+        '2000-4000': { price: 960, time: 6.4 }
+      },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    },
+    {
+      id: 6,
+      type: 'gutter_interior',
+      name: 'Gutter Interior Cleaning',
+      size: { firstStoryFeet: 150, secondStoryFeet: 0 },
+      baseRates: {
+        '1story': { pricePerFt: 2.00, timePerFt: 0.012 },
+        '2story': { pricePerFt: 4.00, timePerFt: 0.024 }
+      },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    },
+    {
+      id: 7,
+      type: 'gutter_exterior',
+      name: 'Gutter Exterior Brightening',
+      size: { firstStoryFeet: 150, secondStoryFeet: 0 },
+      baseRates: {
+        '1story': { pricePerFt: 2.00, timePerFt: 0.012 },
+        '2story': { pricePerFt: 4.00, timePerFt: 0.024 }
+      },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    },
+    {
+      id: 8,
+      type: 'roof',
+      name: 'Roof Cleaning',
+      size: '0-1k',
+      roofType: 'asphalt',
+      gutterStatus: 'has_gutters',
+      storyLevel: '1story',
+      baseRates: {
+        '0-1k': { price: 378, time: 2.0 },
+        '1k-2k': { price: 756, time: 3.0 },
+        '2k-3k': { price: 945, time: 3.5 },
+        '3k-4k': { price: 1323, time: 4.5 },
+        '4k-5k': { price: 1701, time: 5.5 },
+        '5k-6k': { price: 2079, time: 6.5 },
+        '6k-7k': { price: 2457, time: 7.5 }
+      },
+      roofMultipliers: {
+        'asphalt': 1.0,
+        'metal': 1.25,
+        'metal_granular': 1.25,
+        'tpo': 1.25,
+        'other': 1.25
+      },
+      gutterMultipliers: {
+        'has_gutters': 1.0,
+        'no_gutters': 1.5
+      },
+      storyMultipliers: {
+        '1story': 1.0,
+        '2story': 1.55,
+        '3story': 2.25
+      },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    },
+    // Premium Add-on Services Section Break
+    {
+      id: 'break',
+      type: 'section_break',
+      name: '--- Premium Add-on Services ---',
+      isBreak: true
+    },
+    {
+      id: 9,
+      type: 'move_return',
+      name: 'Move & Return Items',
+      size: '0-25',
+      complexity: 'standard',
+      baseRates: {
+        '0-25': { price: 75, time: 0.5 },
+        '25-50': { price: 125, time: 0.8 },
+        '50-75': { price: 175, time: 1.2 },
+        '75-100': { price: 225, time: 1.5 }
+      },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    },
+    {
+      id: 10,
+      type: 'outdoor_furniture',
+      name: 'Outdoor Furniture Cleaning',
+      size: 10,
+      complexity: 'standard',
+      baseRate: { pricePerPiece: 5.00, timePerPiece: 0.05 },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    },
+    {
+      id: 11,
+      type: 'spot_free_windows',
+      name: 'Spot Free Window Cleaning',
+      size: { firstStoryWindows: 1, secondStoryWindows: 0, thirdStoryWindows: 0, fourthStoryWindows: 0 },
+      complexity: 'standard',
+      baseRates: {
+        '1story': { pricePerWindow: 8.00, timePerWindow: 0.05 },
+        '2story': { pricePerWindow: 10.00, timePerWindow: 0.06 },
+        '3story': { pricePerWindow: 12.00, timePerWindow: 0.07 },
+        '4story': { pricePerWindow: 14.00, timePerWindow: 0.08 }
+      },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    },
+    {
+      id: 12,
+      type: 'protective_wax',
+      name: 'Protective Wax (Mildew Retardant)',
+      size: '0-2k',
+      complexity: 'standard',
+      baseRates: {
+        '0-2k': { price: 200, time: 0.7 },
+        '2k-3k': { price: 300, time: 1.0 },
+        '3k-4k': { price: 400, time: 1.3 },
+        '4k-5k': { price: 500, time: 1.6 },
+        '5k-6k': { price: 600, time: 1.9 }
+      },
+      packages: { A: false, B: false, C: false, D: false },
+      enabled: false
+    }
+  ]);
+
+  const complexityMultipliers = {
+    standard: 1.0,
+    deep: 1.25
+  };
+
+  const propertyMultipliers = {
+    residential: 1.0,
+    commercial: 1.25,
+    luxury: 1.4
+  };
+
+  const toggleService = (serviceId) => {
+    setServices(services.map(service => 
+      service.id === serviceId ? { ...service, enabled: !service.enabled } : service
+    ));
+  };
+
+  const updateService = (serviceId, field, value) => {
+    setServices(services.map(service => 
+      service.id === serviceId ? { ...service, [field]: value } : service
+    ));
+  };
+
+  const togglePackage = (serviceId, packageLetter) => {
+    setServices(services.map(service => {
+      if (service.id === serviceId) {
+        const currentlyChecked = service.packages[packageLetter];
+        const newPackages = { ...service.packages };
+        
+        // Toggle the clicked package
+        newPackages[packageLetter] = !currentlyChecked;
+        
+        // If checking (not unchecking), apply cascade logic
+        if (!currentlyChecked) {
+          if (packageLetter === 'A') {
+            // A → B, C, D
+            newPackages.B = true;
+            newPackages.C = true;
+            newPackages.D = true;
+          } else if (packageLetter === 'B') {
+            // B → C, D
+            newPackages.C = true;
+            newPackages.D = true;
+          } else if (packageLetter === 'C') {
+            // C → D
+            newPackages.D = true;
+          }
+        }
+        
+        return {
+          ...service,
+          packages: newPackages
         };
+      }
+      return service;
+    }));
+  };
 
-        const complexityMultipliers = {
-            standard: 1.0,
-            deep: 1.25
-        };
+  const calculateServicePrice = (service) => {
+    const complexityMult = service.complexity ? complexityMultipliers[service.complexity] : 1.0;
+    const propertyMult = propertyMultipliers[propertyType];
+    
+    let basePrice = 0;
+    let baseTime = 0;
+    let requiresEstimate = false;
 
-        const propertyMultipliers = {
-            residential: 1.0,
-            commercial: 1.25,
-            luxury: 1.4
-        };
+    if (service.type === 'house') {
+      const rate = service.baseRates[service.size];
+      basePrice = rate.price;
+      baseTime = rate.time;
+    } else if (service.type === 'driveway' || service.type === 'pavers' || service.type === 'pool_deck' || service.type === 'screen_enclosure' || service.type === 'protective_wax') {
+      const rate = service.baseRates[service.size];
+      basePrice = rate.price;
+      baseTime = rate.time;
+      
+      if (service.type === 'pool_deck' && service.enclosureMultipliers) {
+        const enclosureMult = service.enclosureMultipliers[service.enclosureType || 'open'];
+        basePrice *= enclosureMult;
+        baseTime *= enclosureMult;
+      }
+    } else if (service.type === 'roof') {
+      const rate = service.baseRates[service.size];
+      basePrice = rate.price;
+      baseTime = rate.time;
+      
+      if (service.roofMultipliers) {
+        const roofMult = service.roofMultipliers[service.roofType || 'asphalt'];
+        const gutterMult = service.gutterMultipliers[service.gutterStatus || 'has_gutters'];
+        const storyMult = service.storyMultipliers[service.storyLevel || '1story'];
+        basePrice *= roofMult * gutterMult * storyMult;
+        // For roof cleaning, calculate time as price divided by hourly rate
+        baseTime = basePrice / targetHourlyRate;
+        requiresEstimate = service.roofType === 'tpo' || service.roofType === 'other';
+      }
+    } else if (service.type === 'gutter_interior') {
+      const firstStoryRate = service.baseRates['1story'];
+      const secondStoryRate = service.baseRates['2story'];
+      basePrice = (firstStoryRate.pricePerFt * service.size.firstStoryFeet) + (secondStoryRate.pricePerFt * service.size.secondStoryFeet);
+      baseTime = (firstStoryRate.timePerFt * service.size.firstStoryFeet) + (secondStoryRate.timePerFt * service.size.secondStoryFeet);
+    } else if (service.type === 'gutter_exterior') {
+      const firstStoryRate = service.baseRates['1story'];
+      const secondStoryRate = service.baseRates['2story'];
+      basePrice = (firstStoryRate.pricePerFt * service.size.firstStoryFeet) + (secondStoryRate.pricePerFt * service.size.secondStoryFeet);
+      baseTime = (firstStoryRate.timePerFt * service.size.firstStoryFeet) + (secondStoryRate.timePerFt * service.size.secondStoryFeet);
+    } else if (service.type === 'spot_free_windows') {
+      const firstStoryRate = service.baseRates['1story'];
+      const secondStoryRate = service.baseRates['2story'];
+      const thirdStoryRate = service.baseRates['3story'];
+      const fourthStoryRate = service.baseRates['4story'];
+      basePrice = (firstStoryRate.pricePerWindow * service.size.firstStoryWindows) + 
+                 (secondStoryRate.pricePerWindow * service.size.secondStoryWindows) +
+                 (thirdStoryRate.pricePerWindow * service.size.thirdStoryWindows) +
+                 (fourthStoryRate.pricePerWindow * service.size.fourthStoryWindows);
+      baseTime = (firstStoryRate.timePerWindow * service.size.firstStoryWindows) + 
+                (secondStoryRate.timePerWindow * service.size.secondStoryWindows) +
+                (thirdStoryRate.timePerWindow * service.size.thirdStoryWindows) +
+                (fourthStoryRate.timePerWindow * service.size.fourthStoryWindows);
+    } else if (service.baseRate) {
+      if (service.type === 'outdoor_furniture') {
+        basePrice = service.baseRate.pricePerPiece * service.size;
+        baseTime = service.baseRate.timePerPiece * service.size;
+      } else {
+        basePrice = service.baseRate.price;
+        baseTime = service.baseRate.time;
+      }
+    } else if (service.type === 'move_return') {
+      const rate = service.baseRates[service.size];
+      basePrice = rate.price;
+      baseTime = rate.time;
+    }
 
-        // Utility functions
-        const safeNumber = (value) => {
-            const num = Number(value);
-            return isNaN(num) ? 0 : num;
-        };
+    // Apply complexity multiplier only if service has complexity
+    const finalComplexityMult = service.complexity ? complexityMult : 1.0;
+    const adjustedPrice = basePrice * finalComplexityMult * propertyMult;
+    const adjustedTime = baseTime * finalComplexityMult;
+    const timeBasedPrice = adjustedTime * targetHourlyRate;
 
-        const safeToFixed = (value, decimals = 0) => {
-            return safeNumber(value).toFixed(decimals);
-        };
+    return {
+      price: Math.max(adjustedPrice, timeBasedPrice),
+      time: adjustedTime,
+      requiresEstimate
+    };
+  };
 
-        // Calculation functions
-        const calculateServicePrice = (service) => {
-            if (!service) return { price: 0, time: 0, requiresEstimate: false };
-            
-            const complexityMult = safeNumber(complexityMultipliers[service.complexity] || 1.0);
-            const propertyMult = safeNumber(propertyMultipliers[state.propertyType] || 1.0);
-            const serviceMult = safeNumber(service.serviceMultiplier || 1.0);
-            const hourlyRate = safeNumber(state.targetHourlyRate || 160);
-            
-            let baseTime = 0;
+  const getPackageServices = (packageLetter) => {
+    return services.filter(service => service.enabled && service.packages && service.packages[packageLetter]);
+  };
 
-            try {
-                if (service.type === 'house' || service.type === 'driveway' || service.type === 'screen_enclosure') {
-                    const rate = service.baseRates?.[service.size];
-                    baseTime = safeNumber(rate?.time);
-                } else if (service.type === 'pool_deck') {
-                    const rate = service.baseRates?.[service.size];
-                    baseTime = safeNumber(rate?.time);
-                    
-                    if (service.enclosureMultipliers) {
-                        const enclosureMult = safeNumber(service.enclosureMultipliers[service.enclosureType || 'open'] || 1.0);
-                        baseTime *= enclosureMult;
-                    }
-                } else if (service.type === 'pavers' || service.type === 'deck') {
-                    const rate = service.baseRates?.[service.size];
-                    baseTime = safeNumber(rate?.time);
-                    
-                    if (service.type === 'deck' && service.deckMultipliers) {
-                        const deckMult = safeNumber(service.deckMultipliers[service.deckType || 'wood'] || 1.0);
-                        baseTime *= deckMult;
-                    }
-                } else if (service.type === 'roof') {
-                    const rate = service.baseRates?.[service.size];
-                    baseTime = safeNumber(rate?.time);
-                    
-                    if (service.roofMultipliers) {
-                        const roofMult = safeNumber(service.roofMultipliers[service.roofType || 'asphalt'] || 1.0);
-                        const gutterMult = safeNumber(service.gutterMultipliers?.[service.gutterStatus || 'has_gutters'] || 1.0);
-                        const storyMult = safeNumber(service.storyMultipliers?.[service.storyLevel || '1story'] || 1.0);
-                        baseTime *= roofMult * gutterMult * storyMult;
-                    }
-                } else if (service.type === 'gutter_interior' || service.type === 'gutter_exterior') {
-                    const rate = service.baseRates?.[service.size?.story];
-                    const timePerFt = safeNumber(rate?.timePerFt);
-                    const feet = safeNumber(service.size?.feet);
-                    baseTime = timePerFt * feet;
-                } else if (service.type === 'wooden_fence') {
-                    const rate = service.baseRates?.['per_foot'];
-                    const timePerFt = safeNumber(rate?.timePerFt);
-                    const feet = safeNumber(service.size?.feet);
-                    baseTime = timePerFt * feet;
-                } else if (service.baseRate) {
-                    if (service.type === 'outdoor_furniture') {
-                        const timePerPiece = safeNumber(service.baseRate.timePerPiece);
-                        const size = safeNumber(service.size);
-                        baseTime = timePerPiece * size;
-                    } else if (service.type === 'spot_free_windows') {
-                        const timePerWindow = safeNumber(service.baseRate.timePerWindow);
-                        const size = safeNumber(service.size);
-                        baseTime = timePerWindow * size;
-                    }
-                } else if (service.type === 'protective_wax' || service.type === 'move_return') {
-                    const rate = service.baseRates?.[service.size];
-                    baseTime = safeNumber(rate?.time);
-                }
-            } catch (error) {
-                baseTime = 0;
-            }
+  const calculatePackageTotals = (packageLetter) => {
+    const packageServices = getPackageServices(packageLetter);
+    let allServices = [...packageServices];
+    
+    const subtotal = allServices.reduce((acc, service) => {
+      const calc = calculateServicePrice(service);
+      return {
+        price: acc.price + calc.price,
+        time: acc.time + calc.time
+      };
+    }, { price: 0, time: 0 });
 
-            const adjustedTime = baseTime * complexityMult * serviceMult;
-            const finalPrice = adjustedTime * hourlyRate * propertyMult;
-            
-            return {
-                price: safeNumber(finalPrice),
-                time: safeNumber(adjustedTime),
-                requiresEstimate: false
-            };
-        };
+    const serviceCount = allServices.length;
+    let discountPercent = 0;
+    let meetsMinimum = false;
+    
+    const minimums = { A: 1, B: 2, C: 4, D: 1 };
+    meetsMinimum = serviceCount >= minimums[packageLetter];
+    
+    if (meetsMinimum) {
+      if (packageLetter === 'A') {
+        // Package A uses manual dollar discount
+        discountPercent = 0;
+      } else if (packageLetter === 'C') {
+        discountPercent = 0.15;
+      } else if (serviceCount >= 3) {
+        discountPercent = 0.10;
+      } else if (serviceCount >= 2) {
+        discountPercent = 0.05;
+      }
+    }
+    
+    let discountAmount = subtotal.price * discountPercent;
+    
+    // Apply manual dollar discount for Package A
+    if (packageLetter === 'A') {
+      discountAmount = packageADiscount;
+    }
+    
+    const finalTotal = subtotal.price - discountAmount;
 
-        const getPackageServices = (packageLetter) => {
-            return state.services.filter(service => service.enabled && service.packages?.[packageLetter]);
-        };
+    return {
+      subtotal: subtotal.price,
+      discount: discountAmount,
+      discountPercent: discountPercent * 100,
+      finalTotal: finalTotal,
+      time: subtotal.time,
+      hourlyRate: subtotal.time > 0 ? finalTotal / subtotal.time : 0,
+      serviceCount,
+      allServices: allServices,
+      requiresEstimate: allServices.some(s => calculateServicePrice(s).requiresEstimate),
+      meetsMinimum: meetsMinimum,
+      minimumRequired: minimums[packageLetter]
+    };
+  };
 
-        const calculatePackageTotals = (packageLetter) => {
-            const packageServices = getPackageServices(packageLetter);
-            
-            let totalPrice = 0;
-            let totalTime = 0;
-            
-            packageServices.forEach(service => {
-                const calc = calculateServicePrice(service);
-                totalPrice += safeNumber(calc.price);
-                totalTime += safeNumber(calc.time);
-            });
+  const packageInfo = {
+    A: { name: 'Essential Clean', icon: <Home className="w-4 h-4" /> },
+    B: { name: 'Premium Shine', icon: <Star className="w-4 h-4" /> },
+    C: { name: 'Complete Care', icon: <Crown className="w-4 h-4" /> },
+    D: { name: 'Total Clean', icon: <Zap className="w-4 h-4" /> }
+  };
 
-            let finalTotal = totalPrice;
-            let discountAmount = 0;
-            if (packageLetter === 'A' && safeNumber(state.basicCleanDiscount) > 0) {
-                discountAmount = safeNumber(state.basicCleanDiscount);
-                finalTotal = Math.max(0, totalPrice - discountAmount);
-            }
+  return (
+    <div className="max-w-7xl mx-auto p-6 bg-white">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
+          <Calculator className="text-blue-600" />
+          Digital Estimate Sheet
+        </h1>
+        <p className="text-gray-600">Team calculator with Package D (20% off everything!)</p>
+      </div>
 
-            const hourlyRate = totalTime > 0 ? finalTotal / totalTime : 0;
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
+          <select
+            value={propertyType}
+            onChange={(e) => setPropertyType(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          >
+            <option value="residential">Residential</option>
+            <option value="commercial">Commercial (+25%)</option>
+            <option value="luxury">Luxury (+40%)</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Target $/Hour</label>
+          <input
+            type="number"
+            value={targetHourlyRate}
+            onChange={(e) => setTargetHourlyRate(Number(e.target.value))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
+      </div>
 
-            return {
-                subtotal: safeNumber(totalPrice),
-                finalTotal: safeNumber(finalTotal),
-                discount: discountAmount,
-                time: safeNumber(totalTime),
-                hourlyRate: safeNumber(hourlyRate),
-                serviceCount: packageServices.length,
-                allServices: packageServices
-            };
-        };
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gray-50 border-b border-gray-200">
+              <div className="grid grid-cols-12 gap-1 p-3 font-semibold text-xs">
+                <div className="col-span-1">✓</div>
+                <div className="col-span-2">Service</div>
+                <div className="col-span-2">Config</div>
+                <div className="col-span-1">Type</div>
+                <div className="col-span-1">$</div>
+                <div className="col-span-1">A</div>
+                <div className="col-span-1">B</div>
+                <div className="col-span-1">C</div>
+                <div className="col-span-1">D</div>
+                <div className="col-span-1">Hr</div>
+              </div>
+            </div>
 
-        // Event handlers
-        const toggleService = (serviceId) => {
-            const service = state.services.find(s => s.id === serviceId);
-            if (service) {
-                service.enabled = !service.enabled;
-                render();
-            }
-        };
-
-        const updateService = (serviceId, field, value) => {
-            const service = state.services.find(s => s.id === serviceId);
-            if (service) {
-                if (field === 'size' && typeof service.size === 'object') {
-                    service.size = { ...service.size, ...value };
-                } else {
-                    service[field] = value;
-                }
-                render();
-            }
-        };
-
-        const togglePackage = (serviceId, packageLetter) => {
-            const service = state.services.find(s => s.id === serviceId);
-            if (service) {
-                const currentlyChecked = service.packages[packageLetter];
-                
-                if (!currentlyChecked) {
-                    service.packages[packageLetter] = true;
-                    
-                    if (packageLetter === 'A') {
-                        service.packages['B'] = true;
-                        service.packages['C'] = true;
-                        service.packages['D'] = true;
-                    } else if (packageLetter === 'B') {
-                        service.packages['C'] = true;
-                        service.packages['D'] = true;
-                    } else if (packageLetter === 'C') {
-                        service.packages['D'] = true;
-                    }
-                } else {
-                    service.packages[packageLetter] = false;
-                }
-                
-                render();
-            }
-        };
-
-        // Render function
-        const render = () => {
-            const app = document.getElementById('app');
-            app.innerHTML = `
-                <div class="max-w-7xl mx-auto p-6 bg-white">
-                    <div class="mb-8 text-center">
-                        <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
-                            📊 Digital Estimate Sheet
-                        </h1>
-                        <p class="text-gray-600">Team calculator with package options</p>
+            <div className="divide-y divide-gray-200">
+              {services.map((service) => {
+                // Handle section breaks
+                if (service.isBreak) {
+                  return (
+                    <div key={service.id} className="bg-gradient-to-r from-yellow-50 to-orange-50 border-t-2 border-b-2 border-yellow-200">
+                      <div className="p-4 text-center">
+                        <div className="text-sm font-bold text-orange-800 flex items-center justify-center gap-2">
+                          <span>✨</span>
+                          <span>{service.name}</span>
+                          <span>✨</span>
+                        </div>
+                      </div>
                     </div>
+                  );
+                }
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
-                            <select id="propertyType" class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                                <option value="residential" ${state.propertyType === 'residential' ? 'selected' : ''}>Residential</option>
-                                <option value="commercial" ${state.propertyType === 'commercial' ? 'selected' : ''}>Commercial (+25%)</option>
-                                <option value="luxury" ${state.propertyType === 'luxury' ? 'selected' : ''}>Luxury (+40%)</option>
+                const calculation = calculateServicePrice(service);
+                
+                return (
+                  <div key={service.id}>
+                    <div className={`grid grid-cols-12 gap-1 p-3 text-xs ${service.enabled ? 'bg-white' : 'bg-gray-50'}`}>
+                      <div className="col-span-1 flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={service.enabled}
+                          onChange={() => toggleService(service.id)}
+                          className="w-4 h-4"
+                        />
+                      </div>
+
+                      <div className="col-span-2 flex items-center">
+                        <span className={`font-medium ${service.enabled ? 'text-gray-900' : 'text-gray-500'}`}>
+                          {service.type === 'house' ? (
+                            <span 
+                              title="Soft wash exterior cleaning of siding, trim, and surfaces using low-pressure techniques and specialized detergents to safely remove dirt, mold, mildew, and algae"
+                              className="cursor-help hover:font-bold hover:bg-yellow-100 hover:px-1 hover:rounded transition-all"
+                            >
+                              {service.name}
+                            </span>
+                          ) : (
+                            service.name
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="col-span-2 flex items-center">
+                        {service.enabled && (
+                          <div className="w-full">
+                            {/* House Washing */}
+                            {service.type === 'house' && (
+                              <select
+                                value={service.size}
+                                onChange={(e) => updateService(service.id, 'size', e.target.value)}
+                                className="text-xs px-1 py-1 border rounded w-full"
+                              >
+                                <option value="0-2k">0-2k ft²</option>
+                                <option value="2k-3k">2-3k ft²</option>
+                                <option value="3k-4k">3-4k ft²</option>
+                                <option value="4k-5k">4-5k ft²</option>
+                                <option value="5k-6k">5-6k ft²</option>
+                              </select>
+                            )}
+
+                            {/* Driveway Cleaning */}
+                            {service.type === 'driveway' && (
+                              <select
+                                value={service.size}
+                                onChange={(e) => updateService(service.id, 'size', e.target.value)}
+                                className="text-xs px-1 py-1 border rounded w-full"
+                              >
+                                <option value="0-500">0-500 ft²</option>
+                                <option value="500-1000">500-1,000 ft²</option>
+                                <option value="1000-1500">1,000-1,500 ft²</option>
+                                <option value="1500-2000">1,500-2,000 ft²</option>
+                                <option value="2000-2500">2,000-2,500 ft²</option>
+                                <option value="2500-3000">2,500-3,000 ft²</option>
+                                <option value="3000-3500">3,000-3,500 ft²</option>
+                                <option value="3500-4000">3,500-4,000 ft²</option>
+                              </select>
+                            )}
+
+                            {/* Pool Deck Cleaning */}
+                            {service.type === 'pool_deck' && (
+                              <div className="space-y-1">
+                                <select
+                                  value={service.size}
+                                  onChange={(e) => updateService(service.id, 'size', e.target.value)}
+                                  className="text-xs px-1 py-1 border rounded w-full"
+                                >
+                                  <option value="0-2000">0-2k ft²</option>
+                                  <option value="2000-4000">2k-4k ft²</option>
+                                </select>
+                                <select
+                                  value={service.enclosureType}
+                                  onChange={(e) => updateService(service.id, 'enclosureType', e.target.value)}
+                                  className="text-xs px-1 py-1 border rounded w-full"
+                                >
+                                  <option value="open">Open</option>
+                                  <option value="screened">Screened-In</option>
+                                </select>
+                              </div>
+                            )}
+
+                            {/* Paver Cleaning */}
+                            {service.type === 'pavers' && (
+                              <select
+                                value={service.size}
+                                onChange={(e) => updateService(service.id, 'size', e.target.value)}
+                                className="text-xs px-1 py-1 border rounded w-full"
+                              >
+                                <option value="0-500">0-500 ft²</option>
+                                <option value="500-1000">500-1,000 ft²</option>
+                                <option value="1000-1500">1,000-1,500 ft²</option>
+                                <option value="1500-2000">1,500-2,000 ft²</option>
+                                <option value="2000-2500">2,000-2,500 ft²</option>
+                                <option value="2500-3000">2,500-3,000 ft²</option>
+                                <option value="3000-3500">3,000-3,500 ft²</option>
+                                <option value="3500-4000">3,500-4,000 ft²</option>
+                              </select>
+                            )}
+
+                            {/* Screen Enclosure */}
+                            {service.type === 'screen_enclosure' && (
+                              <select
+                                value={service.size}
+                                onChange={(e) => updateService(service.id, 'size', e.target.value)}
+                                className="text-xs px-1 py-1 border rounded w-full"
+                              >
+                                <option value="0-2000">0-2k ft²</option>
+                                <option value="2000-4000">2k-4k ft²</option>
+                              </select>
+                            )}
+
+                            {/* Roof Cleaning */}
+                            {service.type === 'roof' && (
+                              <div className="space-y-1">
+                                <select
+                                  value={service.size}
+                                  onChange={(e) => updateService(service.id, 'size', e.target.value)}
+                                  className="text-xs px-1 py-1 border rounded w-full"
+                                >
+                                  <option value="0-1k">0-1k ft²</option>
+                                  <option value="1k-2k">1k-2k ft²</option>
+                                  <option value="2k-3k">2k-3k ft²</option>
+                                  <option value="3k-4k">3k-4k ft²</option>
+                                  <option value="4k-5k">4k-5k ft²</option>
+                                  <option value="5k-6k">5k-6k ft²</option>
+                                  <option value="6k-7k">6k-7k ft²</option>
+                                </select>
+                                <select
+                                  value={service.roofType}
+                                  onChange={(e) => updateService(service.id, 'roofType', e.target.value)}
+                                  className="text-xs px-1 py-1 border rounded w-full"
+                                >
+                                  <option value="asphalt">Asphalt</option>
+                                  <option value="metal">Metal</option>
+                                  <option value="metal_granular">Metal Granular</option>
+                                  <option value="tpo">TPO</option>
+                                  <option value="other">Other</option>
+                                </select>
+                              </div>
+                            )}
+
+                            {/* Gutter Services */}
+                            {service.type === 'gutter_interior' && (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs">1st:</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={service.size.firstStoryFeet}
+                                    onChange={(e) => updateService(service.id, 'size', {...service.size, firstStoryFeet: Number(e.target.value)})}
+                                    className="w-12 text-xs px-1 py-1 border rounded"
+                                  />
+                                  <span className="text-xs">ft</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs">2nd:</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={service.size.secondStoryFeet}
+                                    onChange={(e) => updateService(service.id, 'size', {...service.size, secondStoryFeet: Number(e.target.value)})}
+                                    className="w-12 text-xs px-1 py-1 border rounded"
+                                  />
+                                  <span className="text-xs">ft</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {(service.type === 'gutter_exterior') && (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs">1st:</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={service.size.firstStoryFeet}
+                                    onChange={(e) => updateService(service.id, 'size', {...service.size, firstStoryFeet: Number(e.target.value)})}
+                                    className="w-12 text-xs px-1 py-1 border rounded"
+                                  />
+                                  <span className="text-xs">ft</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs">2nd:</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={service.size.secondStoryFeet}
+                                    onChange={(e) => updateService(service.id, 'size', {...service.size, secondStoryFeet: Number(e.target.value)})}
+                                    className="w-12 text-xs px-1 py-1 border rounded"
+                                  />
+                                  <span className="text-xs">ft</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Outdoor Furniture */}
+                            {service.type === 'outdoor_furniture' && (
+                              <div>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={service.size}
+                                    onChange={(e) => updateService(service.id, 'size', Number(e.target.value))}
+                                    className="w-12 text-xs px-1 py-1 border rounded"
+                                  />
+                                  <span>pcs</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Move & Return */}
+                            {service.type === 'move_return' && (
+                              <select
+                                value={service.size}
+                                onChange={(e) => updateService(service.id, 'size', e.target.value)}
+                                className="text-xs px-1 py-1 border rounded w-full"
+                              >
+                                <option value="0-25">0-25 items</option>
+                                <option value="25-50">25-50 items</option>
+                                <option value="50-75">50-75 items</option>
+                                <option value="75-100">75-100 items</option>
+                              </select>
+                            )}
+
+                            {/* Spot Free Windows */}
+                            {service.type === 'spot_free_windows' && (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs">1st:</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={service.size.firstStoryWindows}
+                                    onChange={(e) => updateService(service.id, 'size', {...service.size, firstStoryWindows: Number(e.target.value)})}
+                                    className="w-12 text-xs px-1 py-1 border rounded"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs">2nd:</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={service.size.secondStoryWindows}
+                                    onChange={(e) => updateService(service.id, 'size', {...service.size, secondStoryWindows: Number(e.target.value)})}
+                                    className="w-12 text-xs px-1 py-1 border rounded"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs">3rd:</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={service.size.thirdStoryWindows}
+                                    onChange={(e) => updateService(service.id, 'size', {...service.size, thirdStoryWindows: Number(e.target.value)})}
+                                    className="w-12 text-xs px-1 py-1 border rounded"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs">4th:</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={service.size.fourthStoryWindows}
+                                    onChange={(e) => updateService(service.id, 'size', {...service.size, fourthStoryWindows: Number(e.target.value)})}
+                                    className="w-12 text-xs px-1 py-1 border rounded"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Protective Wax */}
+                            {service.type === 'protective_wax' && (
+                              <select
+                                value={service.size}
+                                onChange={(e) => updateService(service.id, 'size', e.target.value)}
+                                className="text-xs px-1 py-1 border rounded w-full"
+                              >
+                                <option value="0-2k">0-2k ft²</option>
+                                <option value="2k-3k">2-3k ft²</option>
+                                <option value="3k-4k">3-4k ft²</option>
+                                <option value="4k-5k">4-5k ft²</option>
+                                <option value="5k-6k">5-6k ft²</option>
+                              </select>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="col-span-1 flex items-center">
+                        {service.enabled && service.type === 'roof' && (
+                          <div className="space-y-1 w-full">
+                            <select
+                              value={service.gutterStatus}
+                              onChange={(e) => updateService(service.id, 'gutterStatus', e.target.value)}
+                              className="text-xs px-1 py-1 border rounded w-full"
+                            >
+                              <option value="has_gutters">Gutters</option>
+                              <option value="no_gutters">No Gutters</option>
                             </select>
+                            <select
+                              value={service.storyLevel}
+                              onChange={(e) => updateService(service.id, 'storyLevel', e.target.value)}
+                              className="text-xs px-1 py-1 border rounded w-full"
+                            >
+                              <option value="1story">1 Story</option>
+                              <option value="2story">2 Story</option>
+                              <option value="3story">3 Story</option>
+                            </select>
+                          </div>
+                        )}
+                        {service.enabled && service.type !== 'gutter_interior' && service.type !== 'gutter_exterior' && service.type !== 'roof' && service.type !== 'wooden_fence' && service.type !== 'driveway' && service.type !== 'pool_deck' && service.type !== 'deck' && service.type !== 'move_return' && service.type !== 'outdoor_furniture' && service.type !== 'spot_free_windows' && service.type !== 'protective_wax' && service.complexity && (
+                          <select
+                            value={service.complexity}
+                            onChange={(e) => updateService(service.id, 'complexity', e.target.value)}
+                            className="text-xs px-1 py-1 border rounded w-full"
+                          >
+                            {service.type === 'house' || service.type === 'pavers' || service.type === 'screen_enclosure' ? (
+                              <>
+                                <option value="standard">Moderately soiled</option>
+                                <option value="deep">Heavily soiled</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="standard">Std</option>
+                                <option value="deep">Deep</option>
+                              </>
+                            )}
+                          </select>
+                        )}
+                      </div>
+
+                      <div className="col-span-1 text-center flex items-center justify-center">
+                        <span className={`font-bold ${service.enabled ? 'text-green-600' : 'text-gray-400'}`}>
+                          ${service.enabled ? calculation.price.toFixed(0) : '0'}
+                        </span>
+                      </div>
+
+                      {['A', 'B', 'C', 'D'].map(packageLetter => (
+                        <div key={packageLetter} className="col-span-1 text-center flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            disabled={!service.enabled}
+                            checked={service.enabled && service.packages[packageLetter]}
+                            onChange={() => togglePackage(service.id, packageLetter)}
+                            className="w-3 h-3"
+                          />
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Target $/Hour</label>
-                            <input type="number" id="targetHourlyRate" value="${state.targetHourlyRate}" class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                        </div>
+                      ))}
+
+                      <div className="col-span-1 text-center flex items-center justify-center">
+                        <span className={`${service.enabled ? 'text-gray-600' : 'text-gray-400'}`}>
+                          {service.enabled ? calculation.time.toFixed(1) : '0'}
+                        </span>
+                      </div>
                     </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-2">
-                            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                                <div class="bg-gray-50 border-b border-gray-200">
-                                    <div class="grid grid-cols-12 gap-1 p-3 font-semibold text-xs">
-                                        <div class="col-span-1">✓</div>
-                                        <div class="col-span-2">Service</div>
-                                        <div class="col-span-2">Config</div>
-                                        <div class="col-span-1">Soil Level</div>
-                                        <div class="col-span-1">$</div>
-                                        <div class="col-span-1 text-center">A</div>
-                                        <div class="col-span-1 text-center">B</div>
-                                        <div class="col-span-1 text-center">C</div>
-                                        <div class="col-span-1 text-center">D</div>
-                                        <div class="col-span-1 text-center">Hr</div>
-                                    </div>
-                                </div>
-
-                                <div class="divide-y divide-gray-200">
-                                    <div class="bg-blue-50 border-b border-blue-200">
-                                        <div class="p-3 text-center">
-                                            <div class="text-sm font-bold text-blue-800">🏠 CORE SERVICES</div>
-                                        </div>
-                                    </div>
-
-                                    ${state.services.slice(0, 10).map(service => {
-                                        const calculation = calculateServicePrice(service);
-                                        const price = safeNumber(calculation.price);
-                                        const time = safeNumber(calculation.time);
-                                        
-                                        return `
-                                            <div class="grid grid-cols-12 gap-1 p-3 text-xs ${service.enabled ? 'bg-white' : 'bg-gray-50'}">
-                                                <div class="col-span-1 flex items-center">
-                                                    <input type="checkbox" ${service.enabled ? 'checked' : ''} 
-                                                           onchange="toggleService(${service.id})" class="w-4 h-4">
-                                                </div>
-                                                <div class="col-span-2 flex items-center">
-                                                    <span class="font-medium ${service.enabled ? 'text-gray-900' : 'text-gray-500'}">${service.name}</span>
-                                                </div>
-                                                <div class="col-span-2 flex items-center">
-                                                    ${service.enabled ? getServiceConfig(service) : ''}
-                                                </div>
-                                                <div class="col-span-1 flex items-center">
-                                                    ${service.enabled ? getComplexitySelector(service) : ''}
-                                                </div>
-                                                <div class="col-span-1 text-center flex items-center justify-center">
-                                                    <span class="font-bold ${service.enabled ? 'text-green-600' : 'text-gray-400'}">
-                                                        $${service.enabled ? safeToFixed(price, 0) : '0'}
-                                                    </span>
-                                                </div>
-                                                ${['A', 'B', 'C', 'D'].map(pkg => `
-                                                    <div class="col-span-1 text-center flex items-center justify-center">
-                                                        <input type="checkbox" ${service.enabled && service.packages[pkg] ? 'checked' : ''} 
-                                                               ${!service.enabled ? 'disabled' : ''} 
-                                                               onchange="togglePackage(${service.id}, '${pkg}')" class="w-3 h-3">
-                                                    </div>
-                                                `).join('')}
-                                                <div class="col-span-1 text-center flex items-center justify-center">
-                                                    <span class="${service.enabled ? 'text-gray-600' : 'text-gray-400'}">
-                                                        ${service.enabled ? safeToFixed(time, 1) : '0'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        `;
-                                    }).join('')}
-
-                                    <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border-t-2 border-b-2 border-yellow-200">
-                                        <div class="p-3 text-center">
-                                            <div class="text-sm font-bold text-orange-800">✨ PREMIUM ADD-ON SERVICES ✨</div>
-                                        </div>
-                                    </div>
-
-                                    ${state.services.slice(10).map(service => {
-                                        const calculation = calculateServicePrice(service);
-                                        const price = safeNumber(calculation.price);
-                                        const time = safeNumber(calculation.time);
-                                        
-                                        return `
-                                            <div class="grid grid-cols-12 gap-1 p-3 text-xs ${service.enabled ? 'bg-yellow-50' : 'bg-gray-50'}">
-                                                <div class="col-span-1 flex items-center">
-                                                    <input type="checkbox" ${service.enabled ? 'checked' : ''} 
-                                                           onchange="toggleService(${service.id})" class="w-4 h-4">
-                                                </div>
-                                                <div class="col-span-2 flex items-center">
-                                                    <span class="font-medium ${service.enabled ? 'text-gray-900' : 'text-gray-500'}">✨ ${service.name}</span>
-                                                </div>
-                                                <div class="col-span-2 flex items-center">
-                                                    ${service.enabled ? getServiceConfig(service) : ''}
-                                                </div>
-                                                <div class="col-span-1 flex items-center">
-                                                    ${service.enabled ? getComplexitySelector(service) : ''}
-                                                </div>
-                                                <div class="col-span-1 text-center flex items-center justify-center">
-                                                    <span class="font-bold ${service.enabled ? 'text-green-600' : 'text-gray-400'}">
-                                                        $${service.enabled ? safeToFixed(price, 0) : '0'}
-                                                    </span>
-                                                </div>
-                                                ${['A', 'B', 'C', 'D'].map(pkg => `
-                                                    <div class="col-span-1 text-center flex items-center justify-center">
-                                                        <input type="checkbox" ${service.enabled && service.packages[pkg] ? 'checked' : ''} 
-                                                               ${!service.enabled ? 'disabled' : ''} 
-                                                               onchange="togglePackage(${service.id}, '${pkg}')" class="w-3 h-3">
-                                                    </div>
-                                                `).join('')}
-                                                <div class="col-span-1 text-center flex items-center justify-center">
-                                                    <span class="${service.enabled ? 'text-gray-600' : 'text-gray-400'}">
-                                                        ${service.enabled ? safeToFixed(time, 1) : '0'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        `;
-                                    }).join('')}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="lg:col-span-1">
-                            <div class="sticky top-6">
-                                <h2 class="text-2xl font-bold text-center text-gray-900 mb-6">Package Options</h2>
-                                <div class="space-y-4">
-                                    ${['A', 'B', 'C', 'D'].map(packageLetter => {
-                                        const totals = calculatePackageTotals(packageLetter);
-                                        const packageNames = {
-                                            A: '🏠 Basic Clean',
-                                            B: '⭐ Essential Clean',
-                                            C: '👑 Premium Shine',
-                                            D: '⚡ Complete Care'
-                                        };
-                                        const colors = {
-                                            A: 'bg-blue-50 border-blue-200 text-blue-800',
-                                            B: 'bg-green-50 border-green-200 text-green-800',
-                                            C: 'bg-purple-50 border-purple-200 text-purple-800',
-                                            D: 'bg-yellow-50 border-yellow-200 text-yellow-800'
-                                        };
-                                        
-                                        return `
-                                            <div class="${colors[packageLetter]} border-2 rounded-lg p-4">
-                                                <div class="text-center">
-                                                    <h3 class="font-bold text-lg mb-3">${packageNames[packageLetter]}</h3>
-                                                    
-                                                    ${totals.allServices.length > 0 ? `
-                                                        <div>
-                                                            ${packageLetter === 'A' ? `
-                                                                <div class="mb-4">
-                                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Discount Amount</label>
-                                                                    <div class="flex items-center justify-center gap-1">
-                                                                        <span class="text-xs">$</span>
-                                                                        <input type="number" min="0" value="${state.basicCleanDiscount}" 
-                                                                               onchange="state.basicCleanDiscount = Number(this.value) || 0; render();"
-                                                                               class="w-20 text-xs px-2 py-1 border border-gray-300 rounded" placeholder="0">
-                                                                    </div>
-                                                                </div>
-                                                            ` : ''}
-
-                                                            ${packageLetter === 'A' && totals.discount > 0 ? `
-                                                                <div class="mb-3">
-                                                                    <div class="text-lg text-gray-500 line-through">$${safeToFixed(totals.subtotal, 0)}</div>
-                                                                    <div class="text-2xl font-bold text-green-600">$${safeToFixed(totals.finalTotal, 0)}</div>
-                                                                    <div class="text-xs text-green-600">Discount: -$${safeToFixed(totals.discount, 0)}</div>
-                                                                </div>
-                                                            ` : `
-                                                                <div class="text-2xl font-bold text-gray-900 mb-3">$${safeToFixed(totals.finalTotal || totals.subtotal, 0)}</div>
-                                                            `}
-
-                                                            <div class="text-sm text-gray-600 mb-4">${totals.serviceCount} services • ${safeToFixed(totals.time, 1)} hours</div>
-                                                            
-                                                            <div class="space-y-1 text-left mb-4">
-                                                                <div class="text-xs font-medium text-gray-700 mb-2">Package Services:</div>
-                                                                <div class="max-h-32 overflow-y-auto space-y-1">
-                                                                    ${totals.allServices.map(service => {
-                                                                        const serviceCalc = calculateServicePrice(service);
-                                                                        const servicePrice = safeNumber(serviceCalc.price);
-                                                                        return `
-                                                                            <div class="flex justify-between bg-white rounded px-2 py-1 text-xs">
-                                                                                <span class="truncate">${service.name}</span>
-                                                                                <span class="font-medium">$${safeToFixed(servicePrice, 0)}</span>
-                                                                            </div>
-                                                                        `;
-                                                                    }).join('')}
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div class="mt-3 pt-3 border-t">
-                                                                <div class="text-xs text-gray-600">Effective Rate</div>
-                                                                <div class="font-bold ${totals.hourlyRate >= 160 ? 'text-green-600' : 'text-red-500'}">
-                                                                    $${safeToFixed(totals.hourlyRate, 0)}/hour
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ` : `
-                                                        <div class="text-gray-500 text-sm py-8">
-                                                            ${packageLetter === 'D' ? 'Select 7+ core services' : 
-                                                              packageLetter === 'C' ? 'Select 4+ core services' :
-                                                              packageLetter === 'B' ? 'Select 2+ core services' : 
-                                                              'Select 1+ core services'}
-                                                        </div>
-                                                    `}
-                                                </div>
-                                            </div>
-                                        `;
-                                    }).join('')}
-                                </div>
-                            </div>
-                        </div>
+        <div className="lg:col-span-1">
+          <div className="sticky top-6 space-y-4">
+            {['A', 'B', 'C', 'D'].map(packageLetter => {
+              const totals = calculatePackageTotals(packageLetter);
+              const info = packageInfo[packageLetter];
+              const colors = {
+                A: 'bg-blue-50 border-blue-200 text-blue-800',
+                B: 'bg-green-50 border-green-200 text-green-800',
+                C: 'bg-purple-50 border-purple-200 text-purple-800',
+                D: 'bg-yellow-50 border-yellow-200 text-yellow-800'
+              };
+              
+              return (
+                <div key={packageLetter} className={`${colors[packageLetter]} border-2 rounded-lg p-4`}>
+                  <div className="text-center mb-4">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      {info.icon}
+                      <h3 className="font-bold text-lg">
+                        {info.name}
+                        {packageLetter === 'D' && <div className="text-xs">🌟 Everything!</div>}
+                      </h3>
                     </div>
+                    
+                    {totals.allServices.length > 0 ? (
+                      <div>
+                        <div className="text-3xl font-bold text-gray-900 mb-2">${totals.finalTotal.toFixed(0)}</div>
+                        <div className="text-sm text-gray-600 mb-3">
+                          {totals.allServices.length} services • {totals.time.toFixed(1)} hours
+                        </div>
+                        
+                        {!totals.meetsMinimum && (
+                          <div className="bg-red-100 border border-red-300 rounded p-2 mb-3">
+                            <div className="text-xs text-red-800 font-medium">
+                              ⚠️ Package {packageLetter} requires {totals.minimumRequired}+ services
+                            </div>
+                          </div>
+                        )}
+                        
+                        {totals.discountPercent > 0 && totals.meetsMinimum && (
+                          <div className="bg-white rounded p-2 mb-3">
+                            <div className="text-xs text-gray-600">Discount</div>
+                            <div className="text-lg font-bold text-green-600">-${totals.discount.toFixed(0)}</div>
+                            <div className="text-xs text-green-600">({totals.discountPercent}% off)</div>
+                          </div>
+                        )}
+                        
+                        <div className="space-y-1 text-sm text-left">
+                          {totals.allServices.map(service => {
+                            const serviceCalc = calculateServicePrice(service);
+                            return (
+                              <div key={service.id} className="flex justify-between bg-white rounded px-2 py-1">
+                                <span className="truncate">
+                                  {service.name}
+                                </span>
+                                <span className="font-medium">${serviceCalc.price.toFixed(0)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        <div className="mt-3 pt-3 border-t">
+                          <div className="text-xs text-gray-600">Effective Rate</div>
+                          <div className={`font-bold ${totals.hourlyRate >= 160 ? 'text-green-600' : 'text-red-500'}`}>
+                            ${totals.hourlyRate.toFixed(0)}/hour
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-gray-500 text-sm py-8">
+                        Select {totals.minimumRequired}+ services
+                      </div>
+                    )}
+                  </div>
                 </div>
-            `;
-
-            // Add event listeners
-            document.getElementById('propertyType').onchange = (e) => {
-                state.propertyType = e.target.value;
-                render();
-            };
-
-            document.getElementById('targetHourlyRate').onchange = (e) => {
-                state.targetHourlyRate = Number(e.target.value);
-                render();
-            };
-        };
-
-        const getServiceConfig = (service) => {
-            if (!service.enabled) return '';
-            
-            if (service.type === 'house') {
-                return `
-                    <select onchange="updateService(${service.id}, 'size', this.value)" class="text-xs px-1 py-1 border rounded w-full">
-                        <option value="0-2k" ${service.size === '0-2k' ? 'selected' : ''}>0-2k ft²</option>
-                        <option value="2k-3k" ${service.size === '2k-3k' ? 'selected' : ''}>2-3k ft²</option>
-                        <option value="3k-4k" ${service.size === '3k-4k' ? 'selected' : ''}>3-4k ft²</option>
-                        <option value="4k-5k" ${service.size === '4k-5k' ? 'selected' : ''}>4-5k ft²</option>
-                        <option value="5k-6k" ${service.size === '5k-6k' ? 'selected' : ''}>5-6k ft²</option>
-                    </select>
-                `;
-            } else if (service.type === 'driveway') {
-                return `
-                    <select onchange="updateService(${service.id}, 'size', this.value)" class="text-xs px-1 py-1 border rounded w-full">
-                        <option value="0-500" ${service.size === '0-500' ? 'selected' : ''}>0-500 ft²</option>
-                        <option value="500-1000" ${service.size === '500-1000' ? 'selected' : ''}>500-1,000 ft²</option>
-                        <option value="1000-1500" ${service.size === '1000-1500' ? 'selected' : ''}>1,000-1,500 ft²</option>
-                        <option value="1500-2000" ${service.size === '1500-2000' ? 'selected' : ''}>1,500-2,000 ft²</option>
-                        <option value="2000-2500" ${service.size === '2000-2500' ? 'selected' : ''}>2,000-2,500 ft²</option>
-                        <option value="2500-3000" ${service.size === '2500-3000' ? 'selected' : ''}>2,500-3,000 ft²</option>
-                        <option value="3000-3500" ${service.size === '3000-3500' ? 'selected' : ''}>3,000-3,500 ft²</option>
-                        <option value="3500-4000" ${service.size === '3500-4000' ? 'selected' : ''}>3,500-4,000 ft²</option>
-                    </select>
-                `;
-            } else if (service.type === 'outdoor_furniture') {
-                return `
-                    <div class="flex items-center gap-1">
-                        <input type="number" min="1" value="${service.size}" 
-                               onchange="updateService(${service.id}, 'size', Number(this.value))"
-                               class="w-12 text-xs px-1 py-1 border rounded">
-                        <span>pcs</span>
-                    </div>
-                `;
-            } else if (service.type === 'spot_free_windows') {
-                return `
-                    <div class="flex items-center gap-1">
-                        <input type="number" min="1" value="${service.size}" 
-                               onchange="updateService(${service.id}, 'size', Number(this.value))"
-                               class="w-12 text-xs px-1 py-1 border rounded">
-                        <span>windows</span>
-                    </div>
-                `;
-            }
-            return '';
-        };
-
-        const getComplexitySelector = (service) => {
-            if (!service.enabled) return '';
-            
-            if (service.type === 'house' || service.type === 'pavers' || service.type === 'screen_enclosure' || service.type === 'move_return') {
-                return `
-                    <select onchange="updateService(${service.id}, 'complexity', this.value)" class="text-xs px-1 py-1 border rounded w-full">
-                        <option value="standard" ${service.complexity === 'standard' ? 'selected' : ''}>Moderately soiled</option>
-                        <option value="deep" ${service.complexity === 'deep' ? 'selected' : ''}>Heavily soiled</option>
-                    </select>
-                `;
-            }
-            return '';
-        };
-
-        // Initialize the app
-        render();
-    </script>
-</body>
-</html>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
